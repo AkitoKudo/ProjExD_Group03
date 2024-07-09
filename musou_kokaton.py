@@ -494,7 +494,7 @@ def main():
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
 
         if len(pg.sprite.spritecollide(bird, bombs, True)) != 0:
-            z_count-=1
+            z_count-=1 # 残機を減らす
             if z_count ==0:
                 bird.change_img(8, screen) # こうかとん悲しみエフェクト
                 score.update(screen)
@@ -502,7 +502,7 @@ def main():
                 time.sleep(2)
                 return
             else:
-                shields.add(Shield(bird,400))
+                shields.add(Shield(bird,400)) # 被弾した際、残機が残ってる場合シールド獲得
                 lifes.pop()
         
         for emy in pg.sprite.groupcollide(emys, gravitys, True, False).keys(): # 敵との衝突判定
