@@ -254,7 +254,7 @@ class EnemyBoss(pg.sprite.Sprite):
     """
     bossをつかさどるかんすう
     """
-    def __init__(self, life):
+    def __init__(self, life:int):
         super().__init__()
         self.image = pg.transform.rotozoom(pg.image.load(f"fig/boss.png"), 0, 2.0)
         self.rect = self.image.get_rect()
@@ -273,11 +273,11 @@ class EnemyBoss(pg.sprite.Sprite):
         """
         if self.rect.centery > self.bound and self.state == "down":
             self.vy = 0
-            self.state = "step"
+            self.state = "step" #左右に移動する状態
             self.vx = 6
         if self.state == "step" and check_bound(self.rect) != (True,True):
-            self.vx *= -1
-        if self.interval != 0:
+            self.vx *= -1 #画面端についたら移動方向反転
+        if self.interval != 0: #bombの発射レート制御
             self.interval -= 1
         elif self.interval == 0:
             self.interval = random.randint(25, 100)
@@ -316,9 +316,7 @@ class Score:
 
 class Bullet(pg.sprite.Sprite):
     """
-    打ち落とした爆弾，敵機の数をスコアとして表示するクラス
-    爆弾：1点
-    敵機：10点
+    残弾数を表示するクラス
     """
     def __init__(self,bullet :pg.Surface,step=1,value=1,mvalue=1,mct=0,ns=0):
         self.font = pg.font.Font(None, 60)
