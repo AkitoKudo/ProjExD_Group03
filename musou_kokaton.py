@@ -55,29 +55,29 @@ class Bird(pg.sprite.Sprite):
         引数2 xy：こうかとん画像の位置座標タプル
         """
         super().__init__()
-        img0 = pg.transform.rotozoom(pg.image.load(f"fig/RX-0.png"), 0, 1.5)
+        img0 = pg.transform.rotozoom(pg.image.load(f"fig/3.png"), 0, 1.5)
         img = pg.transform.flip(img0, True, False)  # デフォルトのこうかとん
-        simg0 = pg.transform.rotozoom(pg.image.load(f"fig/RX-0shield.png"), 0, 1.5)
+        simg0 = pg.transform.rotozoom(pg.image.load(f"fig/0.png"), 0, 1.5)
         simg = pg.transform.flip(simg0, True, False)
         self.imgs = {
-            (+1, 0): img0,  # 右
-            (+1, -1): img0,  # 右上
-            (0, -1): img0,  # 上
-            (-1, -1): img,  # 左上
-            (-1, 0): img,  # 左
-            (-1, +1): img,  # 左下
-            (0, +1): img,  # 下
-            (+1, +1): img0,  # 右下
+            (+1, 0): img,  # 右
+            (+1, -1): pg.transform.rotozoom(img, 45, 1.0),  # 右上
+            (0, -1): pg.transform.rotozoom(img, 90, 1.0),  # 上
+            (-1, -1): pg.transform.rotozoom(img0, -45, 1.0),  # 左上
+            (-1, 0): img0,  # 左
+            (-1, +1): pg.transform.rotozoom(img0, 45, 1.0),  # 左下
+            (0, +1): pg.transform.rotozoom(img, -90, 1.0),  # 下
+            (+1, +1): pg.transform.rotozoom(img, -45, 1.0),  # 右下
         }
         self.simgs = {
-            (+1, 0): simg0,  # 右
-            (+1, -1): simg0,  # 右上
-            (0, -1): simg0,  # 上
-            (-1, -1): simg,  # 左上
-            (-1, 0): simg,  # 左
-            (-1, +1): simg,  # 左下
-            (0, +1): simg,  # 下
-            (+1, +1): simg0,  # 右下
+            (+1, 0): simg,  # 右
+            (+1, -1): simg,  # 右上
+            (0, -1): simg,  # 上
+            (-1, -1): simg0,  # 左上
+            (-1, 0): simg0,  # 左
+            (-1, +1): simg0,  # 左下
+            (0, +1): simg0,  # 下
+            (+1, +1): simg,  # 右下
         }
         self.dire = (+1, 0)
         self.image = self.imgs[self.dire]
@@ -95,7 +95,7 @@ class Bird(pg.sprite.Sprite):
         引数1 num：こうかとん画像ファイル名の番号
         引数2 screen：画面Surface
         """
-        self.image = pg.transform.rotozoom(pg.image.load(f"fig/RX-0pf.png"), 0, 1.5)
+        self.image = pg.transform.rotozoom(pg.image.load(f"fig/{num}.png"), 0, 1.5)
         screen.blit(self.image, self.rect)
 
     def update(self, key_lst: list[bool], screen: pg.Surface):
@@ -172,9 +172,9 @@ class Beam(pg.sprite.Sprite):
         angle = math.degrees(math.atan2(-self.vy, self.vx))
         angle+=angle0
         if mode == 0:
-            self.image = pg.transform.rotozoom(pg.image.load(f"fig/beam_m.png"), angle, 1.0)
+            self.image = pg.transform.rotozoom(pg.image.load(f"fig/beam.png"), angle, 1.0)
         elif mode == 1:
-            self.image = pg.transform.rotozoom(pg.image.load(f"fig/unigt.png"), angle, 1.0)
+            self.image = pg.transform.rotozoom(pg.image.load(f"fig/beam.png"), angle, 1.0)
         self.vx = math.cos(math.radians(angle))
         self.vy = -math.sin(math.radians(angle))
         self.rect = self.image.get_rect()
@@ -227,7 +227,7 @@ class Enemy(pg.sprite.Sprite):
     """
     敵機に関するクラス
     """
-    imgs = [pg.image.load(f"fig/enemy{i}.png") for i in range(1, 4)]
+    imgs = [pg.image.load(f"fig/alien{i}.png") for i in range(1, 4)]
     
     def __init__(self):
         super().__init__()
@@ -385,15 +385,15 @@ class Gravity(pg.sprite.Sprite):
 
 
 def main():
-    pg.display.set_caption("真！RX-0無双")
+    pg.display.set_caption("真！こうかとん無双")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
-    bg_img = pg.image.load(f"fig/back.jpg")
+    bg_img = pg.image.load(f"fig/pg_bg.jpg")
     score = Score()
 
-    bu_beam = Bullet(pg.transform.rotozoom(pg.image.load(f"fig/beam_m.png"),0,0.5),4,5,5,100,0)
-    bu_unig = Bullet(pg.transform.rotozoom(pg.image.load(f"fig/unigt.png"),0,0.5),3,1,1,200,0)
-    bu_psyc = Bullet(pg.transform.rotozoom(pg.image.load(f"fig/RX-0shield.png"),0,1),2,0,400,800,50)
-    bu_grav = Bullet(pg.transform.rotozoom(pg.image.load(f"fig/RX-0pf.png"),0,1),1,0,400,1200,200)
+    bu_beam = Bullet(pg.transform.rotozoom(pg.image.load(f"fig/beam.png"),0,0.5),4,5,5,100,0)
+    bu_unig = Bullet(pg.transform.rotozoom(pg.image.load(f"fig/beam.png"),0,0.5),3,1,1,200,0)
+    bu_psyc = Bullet(pg.transform.rotozoom(pg.image.load(f"fig/0.png"),0,1),2,0,400,800,50)
+    bu_grav = Bullet(pg.transform.rotozoom(pg.image.load(f"fig/6.png"),0,1),1,0,400,1200,200)
 
     bird = Bird(3, (550, 600))
     bombs = pg.sprite.Group()
@@ -434,7 +434,7 @@ def main():
             if event.type == pg.KEYDOWN and event.key == pg.K_RETURN and len(gravitys) == 0 and score.value >= 200:
                 if bu_grav.ct <= 0:
                     gravitys.add(Gravity())
-                    bird.change_img(8, screen)
+                    bird.change_img(6, screen)
                     bu_grav.mode = 1
                     bu_grav.ct = bu_grav.mct
                     score.value -= 200
