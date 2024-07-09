@@ -172,9 +172,9 @@ class Beam(pg.sprite.Sprite):
         angle = math.degrees(math.atan2(-self.vy, self.vx))
         angle+=angle0
         if mode == 0:
-            self.image = pg.transform.rotozoom(pg.image.load(f"fig/beam.png"), angle, 1.0)
+            self.image = pg.transform.rotozoom(pg.image.load(f"fig/beam.png"), angle, 2.0)
         elif mode == 1:
-            self.image = pg.transform.rotozoom(pg.image.load(f"fig/beam.png"), angle, 1.0)
+            self.image = pg.transform.rotozoom(pg.image.load(f"fig/beam.png"), angle, 2.0)
         self.vx = math.cos(math.radians(angle))
         self.vy = -math.sin(math.radians(angle))
         self.rect = self.image.get_rect()
@@ -250,6 +250,39 @@ class Enemy(pg.sprite.Sprite):
             self.state = "stop"
         self.rect.move_ip(self.vx, self.vy)
 
+class EnemyBoss(pg.sprite.Sprite):
+    """
+    bossをつかさどるかんすう
+    """
+    def __init__(self, life):
+        super().__init__()
+        self.image = pg.transform.rotozoom(pg.image.load(f"fig/boss.png"), 0, 2.0)
+        self.rect = self.image.get_rect()
+        self.rect.center = (WIDTH/2),0
+        self.vx, self.vy = 0, +6
+        self.bound = 60  # 停止位置
+        self.state = "down"  # 降下状態or停止状態
+        self.interval = random.randint(25, 100)
+        self.life = life
+    
+    def update(self):
+        """
+        bossを速度ベクトルself.vyに基づき移動（降下）させる
+        ランダムに決めた停止位置_boundまで降下したら，_stateをstepに変更する
+        引数 screen：画面Surface
+        """
+        if self.rect.centery > self.bound and self.state == "down":
+            self.vy = 0
+            self.state = "step"
+            self.vx = 6
+        if self.state == "step" and check_bound(self.rect) != (True,True):
+            self.vx *= -1
+        if self.interval != 0:
+            self.interval -= 1
+        elif self.interval == 0:
+            self.interval = random.randint(25, 100)
+
+        self.rect.move_ip(self.vx, self.vy)    
 
 class NeoBeam(pg.sprite.Sprite):
     
@@ -381,7 +414,19 @@ class Gravity(pg.sprite.Sprite):
         if self.life < 0:
             self.kill()
 
-
+def clear(screen,bg_img):
+    screen.blit(bg_img, [0, 0])
+    img = pg.image.load(f"fig/6.png")
+    rct = img.get_rect()
+    rct.center = WIDTH/3,HEIGHT/2
+    screen.blit(img,rct)
+    rct.centerx = WIDTH/3*2
+    screen.blit(img,rct)
+    font = pg.font.SysFont(None, 60)
+    txt = font.render("GAME CLEAR", True, (255, 20, 20))
+    txtxy = txt.get_rect()
+    txtxy.center = WIDTH/2,HEIGHT/2
+    screen.blit(txt,txtxy)
 
 
 def main():
@@ -402,6 +447,7 @@ def main():
     emys = pg.sprite.Group()
     shields = pg.sprite.Group()
     gravitys = pg.sprite.Group()
+    boss = pg.sprite.Group()
     bullets = [bu_beam,bu_unig,bu_psyc,bu_grav]
 
     tmr = 0
@@ -440,17 +486,49 @@ def main():
                     score.value -= 200
         screen.blit(bg_img, [0, 0])
 
-        if tmr%25 == 0:  # 200フレームに1回，敵機を出現させる
+        if tmr%25 == 0 and len(boss) == 0:  # 200フレームに1回，敵機を出現させる
             emys.add(Enemy())
+        elif tmr%100 == 0 and len(boss) == 1:
+            emys.add(Enemy())
+            emys.add(Enemy())
+
+        if score.value >= 1500 and len(boss) == 0:
+            boss.add(EnemyBoss(10))
 
         for emy in emys:
             if emy.state == "stop" and tmr%emy.interval == 0:
                 # 敵機が停止状態に入ったら，intervalに応じて爆弾投下
                 bombs.add(Bomb(emy, bird))
 
+        for bos in boss:
+            if bos.state == "step" and bos.interval == 0:
+                # 敵機が停止状態に入ったら，intervalに応じて爆弾投下
+                bombs.add(Bomb(bos, bird))
+
         for emy in pg.sprite.groupcollide(emys, beams, True, False).keys():
             exps.add(Explosion(emy, 100))  # 爆発エフェクト
             score.value += 10  # 10点アップ
+            
+        for bos in pg.sprite.groupcollide(boss, beams, False, True).keys():
+            bos.life -= 1
+            exps.add(Explosion(bos, 10))
+            if bos.life == 0:
+                exps.add(Explosion(bos, 100))
+                bos.kill()
+                score.value += 10000000
+                bird.change_img(6, screen) # こうかとん悲しみエフェクト
+                boss.update()
+                boss.draw(screen)
+                exps.update()
+                exps.draw(screen)
+                score.update(screen)
+                pg.display.update()
+                time.sleep(1)
+                clear(screen,bg_img)
+                pg.display.update()
+                time.sleep(2)
+                return
+
 
         if bird.mode == 1 and score.value >= 1000:
             for emy in pg.sprite.groupcollide(emys, shields, True, False).keys():
@@ -484,6 +562,8 @@ def main():
         emys.draw(screen)
         bombs.update()
         bombs.draw(screen)
+        boss.update()
+        boss.draw(screen)
         exps.update()
         exps.draw(screen)
         score.update(screen)
