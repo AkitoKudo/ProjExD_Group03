@@ -329,6 +329,28 @@ class Bullet(pg.sprite.Sprite):
         screen.blit(self.bimg,self.brct)
         screen.blit(self.image,self.rect)
 
+class Life(pg.sprite.Sprite):
+    """
+    残機表示
+    """
+    def __init__(self,step=0):
+        super().__init__()
+        img=pg.transform.rotozoom(pg.image.load(f"fig/bh.png"),0,0.5)
+        self.image=img
+        self.rect=self.image.get_rect()
+        if step==0:
+            self.rect.center= 50,HEIGHT-100
+        elif step==1:
+            self.rect.center=100,HEIGHT-100
+        elif step==2:
+            self.rect.center=150,HEIGHT-100
+        
+
+    def update(self,screen:pg.surface):
+        screen.blit(self.image,self.rect)
+        
+
+
 
 class Shield(pg.sprite.Sprite):
     """
@@ -389,11 +411,17 @@ def main():
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     bg_img = pg.image.load(f"fig/pg_bg.jpg")
     score = Score()
+    zanki=Life()
+    z_count=3
 
     bu_beam = Bullet(pg.transform.rotozoom(pg.image.load(f"fig/beam.png"),0,0.5),4,5,5,100,0)
     bu_unig = Bullet(pg.transform.rotozoom(pg.image.load(f"fig/beam.png"),0,0.5),3,1,1,200,0)
     bu_psyc = Bullet(pg.transform.rotozoom(pg.image.load(f"fig/0.png"),0,1),2,0,400,800,50)
     bu_grav = Bullet(pg.transform.rotozoom(pg.image.load(f"fig/6.png"),0,1),1,0,400,1200,200)
+
+    bh_1=Life(0)
+    bh_2=Life(1)
+    bh_3=Life(2)
 
     bird = Bird(3, (550, 600))
     bombs = pg.sprite.Group()
@@ -403,6 +431,8 @@ def main():
     shields = pg.sprite.Group()
     gravitys = pg.sprite.Group()
     bullets = [bu_beam,bu_unig,bu_psyc,bu_grav]
+    lifes=[bh_1,bh_2,bh_3]
+    
 
     tmr = 0
     clock = pg.time.Clock()
@@ -464,11 +494,16 @@ def main():
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
 
         if len(pg.sprite.spritecollide(bird, bombs, True)) != 0:
-            bird.change_img(8, screen) # こうかとん悲しみエフェクト
-            score.update(screen)
-            pg.display.update()
-            time.sleep(2)
-            return
+            z_count-=1
+            if z_count ==0:
+                bird.change_img(8, screen) # こうかとん悲しみエフェクト
+                score.update(screen)
+                pg.display.update()
+                time.sleep(2)
+                return
+            else:
+                shields.add(Shield(bird,400))
+                lifes.pop()
         
         for emy in pg.sprite.groupcollide(emys, gravitys, True, False).keys(): # 敵との衝突判定
             exps.add(Explosion(emy, 50))  # 爆発エフェクト
@@ -491,6 +526,8 @@ def main():
         shields.draw(screen)
         gravitys.update()
         gravitys.draw(screen)
+        for i in lifes:
+            i.update(screen)
         for i in bullets:
             i.update(screen,score.value)
         pg.display.update()
