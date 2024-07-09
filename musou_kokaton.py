@@ -382,6 +382,30 @@ class Gravity(pg.sprite.Sprite):
             self.kill()
 
 
+class Ball(pg.sprite.Sprite):
+    """
+    障害物（鉄球）に関するクラス
+    """
+    def __init__(self):
+        super().__init__()
+        self.image = pg.image.load(f"fig/toge4.png") # 鉄球画像
+        self.rect = self.image.get_rect()
+        self.rect.center = random.randint(0,WIDTH),0
+        self.vx = 0
+        self.vy = +3
+        self.speed = 2
+
+    def update(self):
+        """
+        鉄球を速度ベクトルself.vxとself.vyに基づいて移動させる
+        """
+        self.rect.move_ip(self.speed*self.vx, self.speed*self.vy)
+        if HEIGHT < self.rect.centery:
+            self.kill()
+
+
+
+
 
 
 def main():
@@ -402,6 +426,7 @@ def main():
     emys = pg.sprite.Group()
     shields = pg.sprite.Group()
     gravitys = pg.sprite.Group()
+    balls = pg.sprite.Group()
     bullets = [bu_beam,bu_unig,bu_psyc,bu_grav]
 
     tmr = 0
@@ -440,8 +465,11 @@ def main():
                     score.value -= 200
         screen.blit(bg_img, [0, 0])
 
-        if tmr%25 == 0:  # 200フレームに1回，敵機を出現させる
+        if tmr%80 == 0:  # 200フレームに1回，敵機を出現させる
             emys.add(Enemy())
+ 
+        if tmr%100 == 0:  # 100フレームに1回、鉄球を出現させる
+            balls.add(Ball())
 
         for emy in emys:
             if emy.state == "stop" and tmr%emy.interval == 0:
@@ -463,7 +491,18 @@ def main():
         for bomb in pg.sprite.groupcollide(bombs, shields, True, False).keys():
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
 
+        for bomb in pg.sprite.groupcollide(balls, shields, True, False).keys(): # 鉄球がバリアに当たると爆発して無効化する
+            exps.add(Explosion(bomb, 50))  # 爆発エフェクト
+
+
         if len(pg.sprite.spritecollide(bird, bombs, True)) != 0:
+            bird.change_img(8, screen) # こうかとん悲しみエフェクト
+            score.update(screen)
+            pg.display.update()
+            time.sleep(2)
+            return
+        
+        if len(pg.sprite.spritecollide(bird, balls, True)) != 0:
             bird.change_img(8, screen) # こうかとん悲しみエフェクト
             score.update(screen)
             pg.display.update()
@@ -491,6 +530,8 @@ def main():
         shields.draw(screen)
         gravitys.update()
         gravitys.draw(screen)
+        balls.update()
+        balls.draw(screen)
         for i in bullets:
             i.update(screen,score.value)
         pg.display.update()
