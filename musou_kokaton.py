@@ -494,7 +494,7 @@ def main():
             emys.add(Enemy())
             emys.add(Enemy())
 
-        if score.value >= 500 and len(boss) == 0:
+        if score.value >= 1500 and len(boss) == 0:
             boss.add(EnemyBoss(10))
 
         for emy in emys:
