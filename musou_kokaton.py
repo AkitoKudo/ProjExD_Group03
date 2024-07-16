@@ -70,6 +70,7 @@ class Bird(pg.sprite.Sprite):
             (+1, +1): pg.transform.rotozoom(img, -45, 1.0),  # 右下
         }
         self.simgs = {
+            (0,0):simg,
             (+1, 0): simg,  # 右
             (+1, -1): simg,  # 右上
             (0, -1): simg,  # 上
@@ -115,12 +116,9 @@ class Bird(pg.sprite.Sprite):
         if not (sum_mv[0] == 0 and sum_mv[1] == 0):
             self.dire = tuple(sum_mv)
             self.image = self.imgs[self.dire]
-        screen.blit(self.image, self.rect)
         if self.mode == 1:
-            self.srect.center = self.rect.center
-            if not (sum_mv[0] == 0 and sum_mv[1] == 0):
-                self.simage = self.simgs[self.dire]
-            screen.blit(self.simage, self.srect)
+            self.image = self.simgs[self.dire]
+        screen.blit(self.image, self.rect)
 
 
 class Bomb(pg.sprite.Sprite):
@@ -233,9 +231,9 @@ class Enemy(pg.sprite.Sprite):
         super().__init__()
         self.image = random.choice(__class__.imgs)
         self.rect = self.image.get_rect()
-        self.rect.center = random.randint(0, WIDTH), 0
-        self.vx, self.vy = 0, +6
-        self.bound = random.randint(50, HEIGHT//2)  # 停止位置
+        self.rect.center = WIDTH,random.randint(0, HEIGHT)
+        self.vx, self.vy = -6, 0
+        self.bound = random.randint(WIDTH//2, WIDTH-50)  # 停止位置
         self.state = "down"  # 降下状態or停止状態
         self.interval = random.randint(50, 300)  # 爆弾投下インターバル
 
@@ -245,8 +243,8 @@ class Enemy(pg.sprite.Sprite):
         ランダムに決めた停止位置_boundまで降下したら，_stateを停止状態に変更する
         引数 screen：画面Surface
         """
-        if self.rect.centery > self.bound:
-            self.vy = 0
+        if self.rect.centerx < self.bound:
+            self.vx = 0
             self.state = "stop"
         self.rect.move_ip(self.vx, self.vy)
 
@@ -258,9 +256,9 @@ class EnemyBoss(pg.sprite.Sprite):
         super().__init__()
         self.image = pg.transform.rotozoom(pg.image.load(f"fig/boss.png"), 0, 2.0)
         self.rect = self.image.get_rect()
-        self.rect.center = (WIDTH/2),0
-        self.vx, self.vy = 0, +6
-        self.bound = 60  # 停止位置
+        self.rect.center = WIDTH,(HEIGHT/2)
+        self.vx, self.vy = -6, 0
+        self.bound = WIDTH - 60  # 停止位置
         self.state = "down"  # 降下状態or停止状態
         self.interval = random.randint(25, 100)
         self.life = life
@@ -271,12 +269,12 @@ class EnemyBoss(pg.sprite.Sprite):
         ランダムに決めた停止位置_boundまで降下したら，_stateをstepに変更する
         引数 screen：画面Surface
         """
-        if self.rect.centery > self.bound and self.state == "down":
-            self.vy = 0
+        if self.rect.centerx < self.bound and self.state == "down":
+            self.vy = 6
             self.state = "step" #左右に移動する状態
-            self.vx = 6
+            self.vx = 0
         if self.state == "step" and check_bound(self.rect) != (True,True):
-            self.vx *= -1 #画面端についたら移動方向反転
+            self.vy *= -1 #画面端についたら移動方向反転
         if self.interval != 0: #bombの発射レート制御
             self.interval -= 1
         elif self.interval == 0:
@@ -292,7 +290,7 @@ class NeoBeam(pg.sprite.Sprite):
         self.num=num
 
     def gen_beams(self):
-        return [Beam(self.bird,angle0,1)for angle0 in range(-50,+51,100//(self.num-1))]
+        return [Beam(self.bird,angle0,1)for angle0 in range(-12,+13,25//(self.num-1))]
 
 
 class Score:
@@ -431,6 +429,7 @@ def main():
     pg.display.set_caption("真！こうかとん無双")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     bg_img = pg.image.load(f"fig/pg_bg.jpg")
+    bg_img_m = pg.transform.flip(bg_img,True,False)
     score = Score()
 
     bu_beam = Bullet(pg.transform.rotozoom(pg.image.load(f"fig/beam.png"),0,0.5),4,5,5,100,0)
@@ -482,7 +481,12 @@ def main():
                     bu_grav.mode = 1
                     bu_grav.ct = bu_grav.mct
                     score.value -= 200
-        screen.blit(bg_img, [0, 0])
+        bg_x = tmr % 2600
+        bg_x *= 2
+        screen.blit(bg_img, [-bg_x, 0])
+        screen.blit(bg_img_m,[-bg_x+1600,0])
+        screen.blit(bg_img, [-bg_x+3200, 0])
+        screen.blit(bg_img_m,[-bg_x+4800,0])
 
         if tmr%25 == 0 and len(boss) == 0:  # 200フレームに1回，敵機を出現させる
             emys.add(Enemy())
@@ -490,7 +494,7 @@ def main():
             emys.add(Enemy())
             emys.add(Enemy())
 
-        if score.value >= 1500 and len(boss) == 0:
+        if score.value >= 500 and len(boss) == 0:
             boss.add(EnemyBoss(10))
 
         for emy in emys:
