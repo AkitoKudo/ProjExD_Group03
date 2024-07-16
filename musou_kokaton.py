@@ -501,7 +501,7 @@ def clear(screen,bg_img):
 
 
 def main():
-    pg.display.set_caption("真！こうかとん無双")
+    pg.display.set_caption("極・こうかとんシューティング")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     bg_img = pg.image.load(f"fig/pg_bg.jpg")
     bg_img_m = pg.transform.flip(bg_img,True,False)
