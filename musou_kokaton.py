@@ -481,8 +481,7 @@ def main():
                     bu_grav.mode = 1
                     bu_grav.ct = bu_grav.mct
                     score.value -= 200
-        bg_x = tmr % 2600
-        bg_x *= 2
+        bg_x = tmr % 3200
         screen.blit(bg_img, [-bg_x, 0])
         screen.blit(bg_img_m,[-bg_x+1600,0])
         screen.blit(bg_img, [-bg_x+3200, 0])
