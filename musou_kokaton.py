@@ -8,6 +8,7 @@ import pygame as pg
 
 WIDTH = 1100  # ゲームウィンドウの幅
 HEIGHT = 650  # ゲームウィンドウの高さ
+
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -129,14 +130,28 @@ class Bomb(pg.sprite.Sprite):
     """
     colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (255, 0, 255), (0, 255, 255)]
 
-    def __init__(self, emy: "Enemy", bird: Bird):
+    def __init__(self, emy: "Enemy", bird: Bird,tscore):
         """
         爆弾円Surfaceを生成する
         引数1 emy：爆弾を投下する敵機
         引数2 bird：攻撃対象のこうかとん
         """
         super().__init__()
-        rad = random.randint(10, 50)  # 爆弾円の半径：10以上50以下の乱数
+        if tscore <= 50 :  # スコアの合計が50点以下
+            rad = random.randint(10, 10)  # 爆弾円の半径：10の乱数
+            self.speed = 2  # 爆弾の投下速度2
+        elif 51 <= tscore <= 100 :  # スコアの合計が51点以上100点以下
+            rad = random.randint(10, 20)  # 爆弾円の半径：10以上20以下の乱数
+            self.speed = 3  # 爆弾の投下速度3
+        elif 101 <= tscore <= 150:  # スコアの合計が101点以上150点以下
+            rad = random.randint(10, 30)  # 爆弾円の半径：10以上30以下の乱数
+            self.speed = 4  # 爆弾の投下速度4
+        elif 151 <= tscore <= 200:  # スコアの合計が151点以上200点以下
+            rad = random.randint(10, 40)  # 爆弾円の半径：10以上40以下の乱数
+            self.speed = 5  # 爆弾の投下速度5
+        elif 201 <= tscore <= 250:  # スコアの合計が201点以上250点以下
+            rad = random.randint(10, 50)  # 爆弾円の半径：10以上50以下の乱数
+            self.speed = 6  # 爆弾の投下速度6
         self.image = pg.Surface((2*rad, 2*rad))
         color = random.choice(__class__.colors)  # 爆弾円の色：クラス変数からランダム選択
         pg.draw.circle(self.image, color, (rad, rad), rad)
@@ -146,7 +161,6 @@ class Bomb(pg.sprite.Sprite):
         self.vx, self.vy = calc_orientation(emy.rect, bird.rect)  
         self.rect.centerx = emy.rect.centerx
         self.rect.centery = emy.rect.centery+emy.rect.height//2
-        self.speed = 6
 
     def update(self):
         """
@@ -280,7 +294,6 @@ class Score:
         self.image = self.font.render(f"Score: {self.value}", 0, self.color)
         screen.blit(self.image, self.rect)
 
-
 class Bullet(pg.sprite.Sprite):
     """
     打ち落とした爆弾，敵機の数をスコアとして表示するクラス
@@ -389,6 +402,7 @@ def main():
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     bg_img = pg.image.load(f"fig/pg_bg.jpg")
     score = Score()
+    tscore = 0
 
     bu_beam = Bullet(pg.transform.rotozoom(pg.image.load(f"fig/beam.png"),0,0.5),4,5,5,100,0)
     bu_unig = Bullet(pg.transform.rotozoom(pg.image.load(f"fig/beam.png"),0,0.5),3,1,1,200,0)
@@ -446,11 +460,12 @@ def main():
         for emy in emys:
             if emy.state == "stop" and tmr%emy.interval == 0:
                 # 敵機が停止状態に入ったら，intervalに応じて爆弾投下
-                bombs.add(Bomb(emy, bird))
+                bombs.add(Bomb(emy, bird,score.value))
 
         for emy in pg.sprite.groupcollide(emys, beams, True, False).keys():
             exps.add(Explosion(emy, 100))  # 爆発エフェクト
             score.value += 10  # 10点アップ
+            tscore += 10  # 10点加算
 
         if bird.mode == 1 and score.value >= 1000:
             for emy in pg.sprite.groupcollide(emys, shields, True, False).keys():
@@ -459,6 +474,7 @@ def main():
         for bomb in pg.sprite.groupcollide(bombs, beams, True, False).keys():
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
             score.value += 1  # 1点アップ
+            tscore += 1  # 1点加算
 
         for bomb in pg.sprite.groupcollide(bombs, shields, True, False).keys():
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
