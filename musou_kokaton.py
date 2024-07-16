@@ -70,6 +70,7 @@ class Bird(pg.sprite.Sprite):
             (+1, +1): pg.transform.rotozoom(img, -45, 1.0),  # 右下
         }
         self.simgs = {
+            (0,0):simg,
             (+1, 0): simg,  # 右
             (+1, -1): simg,  # 右上
             (0, -1): simg,  # 上
@@ -115,12 +116,9 @@ class Bird(pg.sprite.Sprite):
         if not (sum_mv[0] == 0 and sum_mv[1] == 0):
             self.dire = tuple(sum_mv)
             self.image = self.imgs[self.dire]
-        screen.blit(self.image, self.rect)
         if self.mode == 1:
-            self.srect.center = self.rect.center
-            if not (sum_mv[0] == 0 and sum_mv[1] == 0):
-                self.simage = self.simgs[self.dire]
-            screen.blit(self.simage, self.srect)
+            self.image = self.simgs[self.dire]
+        screen.blit(self.image, self.rect)
 
 
 class Bomb(pg.sprite.Sprite):
@@ -148,7 +146,7 @@ class Bomb(pg.sprite.Sprite):
         elif 151 <= tscore <= 200:  # スコアの合計が151点以上200点以下
             rad = random.randint(10, 40)  # 爆弾円の半径：10以上40以下の乱数
             self.speed = 5  # 爆弾の投下速度5
-        elif 201 <= tscore <= 250:  # スコアの合計が201点以上250点以下
+        elif 201 <= tscore:  # スコアの合計が201点以上250点以下
             rad = random.randint(10, 50)  # 爆弾円の半径：10以上50以下の乱数
             self.speed = 6  # 爆弾の投下速度6
         self.image = pg.Surface((2*rad, 2*rad))
@@ -185,9 +183,9 @@ class Beam(pg.sprite.Sprite):
         angle = math.degrees(math.atan2(-self.vy, self.vx))
         angle+=angle0
         if mode == 0:
-            self.image = pg.transform.rotozoom(pg.image.load(f"fig/beam.png"), angle, 1.0)
+            self.image = pg.transform.rotozoom(pg.image.load(f"fig/beam.png"), angle, 2.0)
         elif mode == 1:
-            self.image = pg.transform.rotozoom(pg.image.load(f"fig/beam.png"), angle, 1.0)
+            self.image = pg.transform.rotozoom(pg.image.load(f"fig/beam.png"), angle, 2.0)
         self.vx = math.cos(math.radians(angle))
         self.vy = -math.sin(math.radians(angle))
         self.rect = self.image.get_rect()
@@ -246,9 +244,9 @@ class Enemy(pg.sprite.Sprite):
         super().__init__()
         self.image = random.choice(__class__.imgs)
         self.rect = self.image.get_rect()
-        self.rect.center = random.randint(0, WIDTH), 0
-        self.vx, self.vy = 0, +6
-        self.bound = random.randint(50, HEIGHT//2)  # 停止位置
+        self.rect.center = WIDTH,random.randint(0, HEIGHT)
+        self.vx, self.vy = -6, 0
+        self.bound = random.randint(WIDTH//2, WIDTH-50)  # 停止位置
         self.state = "down"  # 降下状態or停止状態
         self.interval = random.randint(50, 300)  # 爆弾投下インターバル
 
@@ -258,11 +256,44 @@ class Enemy(pg.sprite.Sprite):
         ランダムに決めた停止位置_boundまで降下したら，_stateを停止状態に変更する
         引数 screen：画面Surface
         """
-        if self.rect.centery > self.bound:
-            self.vy = 0
+        if self.rect.centerx < self.bound:
+            self.vx = 0
             self.state = "stop"
         self.rect.move_ip(self.vx, self.vy)
 
+class EnemyBoss(pg.sprite.Sprite):
+    """
+    bossをつかさどるかんすう
+    """
+    def __init__(self, life:int):
+        super().__init__()
+        self.image = pg.transform.rotozoom(pg.image.load(f"fig/boss.png"), 0, 2.0)
+        self.rect = self.image.get_rect()
+        self.rect.center = WIDTH,(HEIGHT/2)
+        self.vx, self.vy = -6, 0
+        self.bound = WIDTH - 60  # 停止位置
+        self.state = "down"  # 降下状態or停止状態
+        self.interval = random.randint(25, 100)
+        self.life = life
+    
+    def update(self):
+        """
+        bossを速度ベクトルself.vyに基づき移動（降下）させる
+        ランダムに決めた停止位置_boundまで降下したら，_stateをstepに変更する
+        引数 screen：画面Surface
+        """
+        if self.rect.centerx < self.bound and self.state == "down":
+            self.vy = 6
+            self.state = "step" #左右に移動する状態
+            self.vx = 0
+        if self.state == "step" and check_bound(self.rect) != (True,True):
+            self.vy *= -1 #画面端についたら移動方向反転
+        if self.interval != 0: #bombの発射レート制御
+            self.interval -= 1
+        elif self.interval == 0:
+            self.interval = random.randint(25, 100)
+
+        self.rect.move_ip(self.vx, self.vy)    
 
 class NeoBeam(pg.sprite.Sprite):
     
@@ -272,7 +303,7 @@ class NeoBeam(pg.sprite.Sprite):
         self.num=num
 
     def gen_beams(self):
-        return [Beam(self.bird,angle0,1)for angle0 in range(-50,+51,100//(self.num-1))]
+        return [Beam(self.bird,angle0,1)for angle0 in range(-12,+13,25//(self.num-1))]
 
 
 class Score:
@@ -295,9 +326,7 @@ class Score:
 
 class Bullet(pg.sprite.Sprite):
     """
-    打ち落とした爆弾，敵機の数をスコアとして表示するクラス
-    爆弾：1点
-    敵機：10点
+    残弾数を表示するクラス
     """
     def __init__(self,bullet :pg.Surface,step=1,value=1,mvalue=1,mct=0,ns=0):
         self.font = pg.font.Font(None, 60)
@@ -424,6 +453,13 @@ class Item(pg.sprite.Sprite):
         self.image = pg.transform.scale(original_image, scaled_size)
         self.rect = self.image.get_rect()
         self.rect.center = random.randint(0, WIDTH), random.randint(0, HEIGHT)
+        self.vx = -6
+        self.vy = 0
+    
+    def update(self):
+        self.rect.move_ip(self.vx, self.vy)
+        if 0 > self.rect.centerx:
+            self.kill()
 
 class Ball(pg.sprite.Sprite):
     """
@@ -433,9 +469,9 @@ class Ball(pg.sprite.Sprite):
         super().__init__()
         self.image = pg.image.load(f"fig/toge4.png") # 鉄球画像
         self.rect = self.image.get_rect()
-        self.rect.center = random.randint(0,WIDTH),0
-        self.vx = 0
-        self.vy = +3
+        self.rect.center = WIDTH,random.randint(0,HEIGHT)
+        self.vx = -3
+        self.vy = 0
         self.speed = 2
 
     def update(self):
@@ -443,18 +479,32 @@ class Ball(pg.sprite.Sprite):
         鉄球を速度ベクトルself.vxとself.vyに基づいて移動させる
         """
         self.rect.move_ip(self.speed*self.vx, self.speed*self.vy)
-        if HEIGHT < self.rect.centery:
+        if 0 > self.rect.centerx:
             self.kill()
 
 
 
 
+def clear(screen,bg_img):
+    screen.blit(bg_img, [0, 0])
+    img = pg.image.load(f"fig/6.png")
+    rct = img.get_rect()
+    rct.center = WIDTH/3,HEIGHT/2
+    screen.blit(img,rct)
+    rct.centerx = WIDTH/3*2
+    screen.blit(img,rct)
+    font = pg.font.SysFont(None, 60)
+    txt = font.render("GAME CLEAR", True, (255, 20, 20))
+    txtxy = txt.get_rect()
+    txtxy.center = WIDTH/2,HEIGHT/2
+    screen.blit(txt,txtxy)
 
 
 def main():
     pg.display.set_caption("真！こうかとん無双")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     bg_img = pg.image.load(f"fig/pg_bg.jpg")
+    bg_img_m = pg.transform.flip(bg_img,True,False)
     score = Score()
     zanki=Life()
     z_count=3
@@ -477,6 +527,7 @@ def main():
     shields = pg.sprite.Group()
     gravitys = pg.sprite.Group()
     balls = pg.sprite.Group()
+    boss = pg.sprite.Group()
     bullets = [bu_beam,bu_unig,bu_psyc,bu_grav]
     lifes=[bh_1,bh_2,bh_3]
     
@@ -519,9 +570,16 @@ def main():
                     bu_grav.mode = 1
                     bu_grav.ct = bu_grav.mct
                     score.value -= 200
-        screen.blit(bg_img, [0, 0])
+        bg_x = tmr % 3200
+        screen.blit(bg_img, [-bg_x, 0])
+        screen.blit(bg_img_m,[-bg_x+1600,0])
+        screen.blit(bg_img, [-bg_x+3200, 0])
+        screen.blit(bg_img_m,[-bg_x+4800,0])
 
-        if tmr%80 == 0:  # 200フレームに1回，敵機を出現させる
+        if tmr%25 == 0 and len(boss) == 0:  # 200フレームに1回，敵機を出現させる
+            emys.add(Enemy())
+        elif tmr%100 == 0 and len(boss) == 1:
+            emys.add(Enemy())
             emys.add(Enemy())
         
         item_timer += 1
@@ -532,15 +590,44 @@ def main():
         if tmr%100 == 0:  # 100フレームに1回、鉄球を出現させる
             balls.add(Ball())
 
+        if score.value >= 1000 and len(boss) == 0:
+            boss.add(EnemyBoss(10))
+
         for emy in emys:
             if emy.state == "stop" and tmr%emy.interval == 0:
                 # 敵機が停止状態に入ったら，intervalに応じて爆弾投下
                 bombs.add(Bomb(emy, bird,score.value))
 
+        for bos in boss:
+            if bos.state == "step" and bos.interval == 0:
+                # 敵機が停止状態に入ったら，intervalに応じて爆弾投下
+                bombs.add(Bomb(bos, bird,score.value))
+
         for emy in pg.sprite.groupcollide(emys, beams, True, False).keys():
             exps.add(Explosion(emy, 100))  # 爆発エフェクト
             score.value += 10  # 10点アップ
             tscore += 10  # 10点加算
+            
+        for bos in pg.sprite.groupcollide(boss, beams, False, True).keys():
+            bos.life -= 1
+            exps.add(Explosion(bos, 10))
+            if bos.life == 0:
+                exps.add(Explosion(bos, 100))
+                bos.kill()
+                score.value += 10000000
+                bird.change_img(6, screen) # こうかとん悲しみエフェクト
+                boss.update()
+                boss.draw(screen)
+                exps.update()
+                exps.draw(screen)
+                score.update(screen)
+                pg.display.update()
+                time.sleep(1)
+                clear(screen,bg_img)
+                pg.display.update()
+                time.sleep(2)
+                return
+
 
         if bird.mode == 1 and score.value >= 1000:
             for emy in pg.sprite.groupcollide(emys, shields, True, False).keys():
@@ -596,17 +683,19 @@ def main():
         emys.draw(screen)
         bombs.update()
         bombs.draw(screen)
+        boss.update()
+        boss.draw(screen)
         exps.update()
         exps.draw(screen)
         score.update(screen)
         shields.update(bird,key_lst)
         shields.draw(screen)
-        gravitys.update()
-        gravitys.draw(screen)
         items.update()
         items.draw(screen)
         balls.update()
         balls.draw(screen)
+        gravitys.update()
+        gravitys.draw(screen)
         for i in lifes:
             i.update(screen)
         for i in bullets:
