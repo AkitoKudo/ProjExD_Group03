@@ -5,7 +5,6 @@ import sys
 import time
 import pygame as pg
 
-
 WIDTH = 1100  # ゲームウィンドウの幅
 HEIGHT = 650  # ゲームウィンドウの高さ
 
@@ -416,6 +415,15 @@ class Gravity(pg.sprite.Sprite):
         if self.life < 0:
             self.kill()
 
+class Item(pg.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        original_image = pg.image.load("fig/item.png")
+        # 画像を元のサイズの40%に縮小
+        scaled_size = (int(original_image.get_width() * 0.4), int(original_image.get_height() * 0.3))
+        self.image = pg.transform.scale(original_image, scaled_size)
+        self.rect = self.image.get_rect()
+        self.rect.center = random.randint(0, WIDTH), random.randint(0, HEIGHT)
 
 class Ball(pg.sprite.Sprite):
     """
@@ -475,6 +483,10 @@ def main():
 
     tmr = 0
     clock = pg.time.Clock()
+
+    items = pg.sprite.Group()
+    item_timer = 0
+
     while True:
         key_lst = pg.key.get_pressed()
         for event in pg.event.get():
@@ -489,7 +501,7 @@ def main():
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
                 if key_lst[pg.K_LSHIFT]:
                     if bu_unig.ct <= 0:
-                        m_beam=NeoBeam(bird,3)
+                        m_beam = NeoBeam(bird, 3)
                         beams.add(m_beam.gen_beams())
                         bu_unig.value -= 1
                         bu_unig.ct = bu_unig.mct
@@ -511,6 +523,11 @@ def main():
 
         if tmr%80 == 0:  # 200フレームに1回，敵機を出現させる
             emys.add(Enemy())
+        
+        item_timer += 1
+        if item_timer >= 250:  # 50 FPS × 5 秒 = 250フレーム
+            items.add(Item())
+            item_timer = 0
  
         if tmr%100 == 0:  # 100フレームに1回、鉄球を出現させる
             balls.add(Ball())
@@ -568,6 +585,9 @@ def main():
         for bomb in pg.sprite.groupcollide(bombs, gravitys, True, False).keys(): # 爆弾との衝突判定
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
 
+        for item in pg.sprite.spritecollide(bird, items, True):
+            bu_beam.ct = 0
+            bu_unig.ct = 0
 
         bird.update(key_lst, screen)
         beams.update()
@@ -583,6 +603,8 @@ def main():
         shields.draw(screen)
         gravitys.update()
         gravitys.draw(screen)
+        items.update()
+        items.draw(screen)
         balls.update()
         balls.draw(screen)
         for i in lifes:
